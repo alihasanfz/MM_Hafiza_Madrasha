@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>সবক রিপোর্ট — <%= student.name %></title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+<%- include('_style') %>
+<%- include('_pwa') %>
+<style>
+  .hr-wrap { max-width: 980px; margin: 0 auto; }
+  .hr-top { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .hr-top h2 { margin: 0; font-size: 20px; }
+  .hr-meta { color: #64748b; font-size: 13px; margin-top: 2px; }
+  .hr-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .hr-actions .btn { padding: 8px 14px; font-size: 13px; }
+  .hr-btn-green { background: #047857; color: #fff; }
+  .hr-filter { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; margin-top: 14px; }
+  .hr-filter label { margin: 0 0 3px; }
+  .hr-filter input { padding: 8px; }
+  .hr-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, 1fr); margin-top: 14px; }
+  @media (min-width: 700px) { .hr-grid { grid-template-columns: repeat(4, 1fr); } }
+  .hr-stat { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; text-align: center; }
+  .hr-stat .num { font-size: 24px; font-weight: 700; color: #047857; line-height: 1.2; }
+  .hr-stat .lbl { font-size: 12px; color: #475569; margin-top: 2px; }
+  .hr-bars { margin-top: 14px; display: grid; gap: 8px; }
+  .hr-bar { display: grid; grid-template-columns: 120px 1fr 36px; gap: 8px; align-items: center; font-size: 13px; }
+  .hr-bar .track { background: #f1f5f9; border-radius: 999px; height: 12px; overflow: hidden; }
+  .hr-bar .fill { height: 100%; border-radius: 999px; }
+  .hr-bar .cnt { text-align: right; font-weight: 700; }
+  .hr-paras { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-top: 10px; }
+  @media (max-width: 520px) { .hr-paras { grid-template-columns: repeat(6, 1fr); } }
+  .hr-para { text-align: center; padding: 6px 0; border-radius: 6px; font-size: 12px; background: #f1f5f9; color: #94a3b8; }
+  .hr-para.on { background: #047857; color: #fff; font-weight: 700; }
+  .hr-table-wrap { overflow-x: auto; }
+  .hr-table td, .hr-table th { white-space: nowrap; vertical-align: top; }
+  .hr-table td.wrap { white-space: normal; min-width: 160px; }
+  .hr-pill { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 700; }
+  .hr-empty { text-align: center; color: #64748b; padding: 24px 8px; }
+  @media print {
+    body { background: #fff !important; padding: 0 !important; }
+    .sidebar, .mobile-topbar, .topbar-desktop, .bottom-nav, .sidebar-overlay, .nav, .page-head-wrap, .hr-actions, .hr-filter, .no-print { display: none !important; }
+    .main-content { margin: 0 !important; padding: 0 !important; }
+    .card { box-shadow: none !important; border: none !important; max-width: none !important; padding: 0 0 12px !important; }
+    .hr-stat, .hr-pill, .hr-para.on, .hr-bar .fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<%
+  var _teacher = (typeof isTeacher !== 'undefined') && isTeacher;
+  function _d(d) { try { return new Date(d + 'T00:00:00').toLocaleDateString('bn-BD', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return d; } }
+  function _n(n) { return String(n).replace(/\d/g, function (x) { return '০১২৩৪৫৬৭৮৯'[x]; }); }
+  var _maxRate = Math.max.apply(null, RATINGS.map(function (r) { return summary.ratingCounts[r]; }).concat([1]));
+  var _crumbs = [
+    { label: 'হোম', href: _teacher ? '/teacher/panel' : '/panel' },
+    { label: 'দৈনিক সবক', href: backUrl },
+    { label: 'সবক রিপোর্ট' }
+  ];
+%>
+<% if (_teacher) { %>
+  <div class="nav">
+    <a href="/teacher/panel">🏠 হোম</a>
+    <a href="<%= backUrl %>">📖 দৈনিক সবক</a>
+    <a href="/teacher/logout">🚪 লগআউট</a>
+  </div>
+  <div class="hr-wrap">
+<% } else { %>
+  <div class="app-shell">
+    <%- include('_sidebar') %>
+    <div class="main-content">
+<% } %>
+
+  <%- include('_page-head', {
+    icon: '📊',
+    title: 'সবক রিপোর্ট',
+    desc: 'তালিবুল ইলমের হিফজ অগ্রগতির সারাংশ ও দৈনিক তালিকা।',
+    crumbs: _crumbs
+  }) %>
+
+  <div class="card hr-wrap" style="max-width:980px;">
+    <div class="hr-top">
+      <div>
+        <h2><%= student.name %></h2>
+        <div class="hr-meta">
+          বিভাগ: <strong><%= cls.name %></strong>
+          <% if (student.roll) { %> · রোল: <strong><%= student.roll %></strong><% } %>
+          <% if (student.registration) { %> · রেজি.: <%= student.registration %><% } %>
+        </div>
+        <div class="hr-meta"><%= settings && settings.schoolName ? settings.schoolName : '' %></div>
+      </div>
+      <div class="hr-actions">
+        <a class="btn btn-secondary" href="<%= backUrl %>">← দৈনিক সবক</a>
+        <button type="button" class="btn hr-btn-green" onclick="window.print()">🖨️ প্রিন্ট</button>
+      </div>
+    </div>
+
+    <form method="GET" class="hr-filter no-print" action="/hifz/student/<%= student.id %>/report">
+      <div><label>থেকে</label><input type="date" name="from" value="<%= from %>" /></div>
+      <div><label>পর্যন্ত</label><input type="date" name="to" value="<%= to %>" /></div>
+      <button type="submit" class="btn hr-btn-green" style="padding:9px 14px; font-size:14px;">দেখুন</button>
+      <a class="btn btn-secondary" style="padding:9px 14px; font-size:14px;" href="/hifz/student/<%= student.id %>/report?all=1">সব সময়</a>
+    </form>
+    <p class="hr-meta" style="margin-top:10px;">
+      <%= showAll ? 'সব সময়ের রেকর্ড' : ('সময়কাল: ' + _d(from) + ' — ' + _d(to)) %>
+    </p>
+
+    <div class="hr-grid">
+      <div class="hr-stat"><div class="num"><%= _n(summary.days) %></div><div class="lbl">সবক লেখা দিন</div></div>
+      <div class="hr-stat"><div class="num"><%= overall.currentPara ? _n(overall.currentPara) : '—' %></div><div class="lbl">সর্বশেষ পারা</div></div>
+      <div class="hr-stat"><div class="num"><%= _n(overall.parasTouched.length) %>/৩০</div><div class="lbl">স্পর্শ করা পারা (সব সময়)</div></div>
+      <div class="hr-stat"><div class="num"><%= _n(summary.withSabaq) %></div><div class="lbl">নতুন সবক নেওয়া দিন</div></div>
+    </div>
+  </div>
+
+  <div class="card hr-wrap" style="max-width:980px;">
+    <h2>মানের হিসাব</h2>
+    <% if (summary.rated === 0) { %>
+      <p class="hr-empty" style="padding:8px;">এই সময়ে কোনো মান লেখা হয়নি।</p>
+    <% } else { %>
+    <div class="hr-bars">
+      <% RATINGS.forEach(function (rt) { var m = RATING_META[rt]; var c = summary.ratingCounts[rt]; %>
+        <div class="hr-bar">
+          <div style="font-weight:600; color:<%= m.color %>;"><%= rt %></div>
+          <div class="track"><div class="fill" style="width:<%= Math.round((c / _maxRate) * 100) %>%; background:<%= m.color %>;"></div></div>
+          <div class="cnt"><%= _n(c) %></div>
+        </div>
+      <% }) %>
+    </div>
+    <% } %>
+
+    <h2 style="margin-top:18px;">পারা অগ্রগতি (সব সময়)</h2>
+    <div class="hr-paras">
+      <% for (var p = 1; p <= 30; p++) { %>
+        <div class="hr-para <%= overall.parasTouched.indexOf(p) !== -1 ? 'on' : '' %>"><%= _n(p) %></div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="card hr-wrap" style="max-width:980px;">
+    <h2>দৈনিক সবক তালিকা</h2>
+    <% if (records.length === 0) { %>
+      <p class="hr-empty">এই সময়ে কোনো সবক রেকর্ড নেই।</p>
+    <% } else { %>
+    <div class="hr-table-wrap">
+      <table class="hr-table">
+        <thead>
+          <tr><th>তারিখ</th><th>পারা</th><th>নতুন সবক</th><th>সবক দোরা</th><th>আম দোরা</th><th>মান</th><th>মন্তব্য</th><th>উস্তাদ</th></tr>
+        </thead>
+        <tbody>
+          <% records.forEach(function (r) { var m = r.rating ? RATING_META[r.rating] : null; %>
+          <tr>
+            <td><%= _d(r.entry_date) %></td>
+            <td><strong><%= _n(r.para_no) %></strong></td>
+            <td class="wrap"><%= r.sabaq || '—' %></td>
+            <td class="wrap"><%= r.sabaq_dawr || '—' %></td>
+            <td class="wrap"><%= r.dawr || '—' %></td>
+            <td><% if (m) { %><span class="hr-pill" style="background:<%= m.bg %>; color:<%= m.color %>;"><%= r.rating %></span><% } else { %>—<% } %></td>
+            <td class="wrap"><%= r.comments || '' %></td>
+            <td><%= r.ustad_name || '' %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </div>
+
+<% if (_teacher) { %>
+  </div>
+<% } else { %>
+    </div>
+  </div>
+<% } %>
+</body>
+</html>

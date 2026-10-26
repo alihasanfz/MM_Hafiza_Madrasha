@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>বোর্ডিং হিসাব</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+<%- include('_style') %>
+<%- include('_pwa') %>
+<style>
+  .bd-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, 1fr); margin-top: 12px; }
+  @media (min-width: 760px) { .bd-grid { grid-template-columns: repeat(3, 1fr); } }
+  .bd-stat { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; text-align: center; }
+  .bd-stat.warn { background: #fffbeb; border-color: #fde68a; }
+  .bd-stat .num { font-size: 22px; font-weight: 700; color: #047857; line-height: 1.2; }
+  .bd-stat.warn .num { color: #b45309; }
+  .bd-stat .lbl { font-size: 12px; color: #475569; margin-top: 2px; }
+  .bd-filter { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+  .bd-filter label { margin: 0 0 3px; }
+  .bd-green { background: #047857; color: #fff; }
+  .bd-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .bd-badge.lillah { background: #fef3c7; color: #92400e; }
+  .bd-badge.pay { background: #d1fae5; color: #065f46; }
+  .bd-note { font-size: 13px; color: #475569; line-height: 1.6; }
+  .bd-ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; border-radius: 10px; padding: 10px 12px; font-weight: 600; margin-bottom: 12px; }
+  .bd-scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+  <div class="app-shell">
+    <%- include('_sidebar') %>
+    <div class="main-content">
+
+  <%- include('_page-head', {
+    icon: '🍲',
+    title: 'বোর্ডিং হিসাব',
+    desc: 'লিল্লাহ বোর্ডিং ও মেস ফি — বিল, মওকুফ, মেস খরচ ও লিল্লাহ তহবিলের মাসিক হিসাব।'
+  }) %>
+
+  <div class="card">
+    <% if (generated) { %>
+      <div class="bd-ok">✓ <%= generated.charged %> জনের বোর্ডিং ফি যোগ হয়েছে<%= generated.waived ? ' (এর মধ্যে ' + generated.waived + ' জন লিল্লাহ — মওকুফসহ)' : '' %>।<% if (generated.charged === 0) { %> নতুন কোনো চার্জ বাকি ছিল না (আগেই বিল হয়ে গেছে, অথবা বিভাগের বোর্ডিং ফি/তালিবুল ইলমর বোর্ডিং চালু নেই)।<% } %></div>
+    <% } %>
+    <form method="GET" action="/admin/boarding" class="bd-filter">
+      <div><label>মাস</label><input type="month" name="month" value="<%= month %>" /></div>
+      <button type="submit" class="btn bd-green" style="padding:10px 16px;">দেখুন</button>
+    </form>
+
+    <div class="bd-grid">
+      <div class="bd-stat"><div class="num"><%= totals.boarders %></div><div class="lbl">মোট বোর্ডার</div></div>
+      <div class="bd-stat"><div class="num"><%= totals.payingBoarders %></div><div class="lbl">ফি-প্রদানকারী বোর্ডার</div></div>
+      <div class="bd-stat warn"><div class="num"><%= totals.lillahBoarders %></div><div class="lbl">লিল্লাহ বোর্ডার</div></div>
+      <div class="bd-stat"><div class="num">৳ <%= totals.billed.toLocaleString('en-US') %></div><div class="lbl">এ মাসে মোট বিল</div></div>
+      <div class="bd-stat warn"><div class="num">৳ <%= totals.lillahWaived.toLocaleString('en-US') %></div><div class="lbl">লিল্লাহ হিসেবে মওকুফ</div></div>
+      <div class="bd-stat"><div class="num">৳ <%= totals.payable.toLocaleString('en-US') %></div><div class="lbl">আদায়যোগ্য মেস ফি</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>মাসের মেস ও লিল্লাহ তহবিল</h2>
+    <div class="bd-grid">
+      <div class="bd-stat warn"><div class="num">৳ <%= messExpense.toLocaleString('en-US') %></div><div class="lbl">মেস খরচ ("<%= messCategory %>" খাত)</div></div>
+      <div class="bd-stat"><div class="num">৳ <%= lillahDonations.toLocaleString('en-US') %></div><div class="lbl">লিল্লাহ বোর্ডিং তহবিলে প্রাপ্ত দান</div></div>
+      <div class="bd-stat <%= lillahDonations - totals.lillahWaived < 0 ? 'warn' : '' %>">
+        <div class="num">৳ <%= (lillahDonations - totals.lillahWaived).toLocaleString('en-US') %></div>
+        <div class="lbl">দান − লিল্লাহ মওকুফ</div>
+      </div>
+    </div>
+    <p class="bd-note" style="margin-top:12px;">
+      মেস খরচ যোগ করতে <a href="/admin/expenses">ব্যয় ব্যবস্থাপনায়</a> "<%= messCategory %>" খাত বেছে নিন।
+      লিল্লাহ তহবিলে দান যোগ করতে <a href="/admin/donations">দান-অনুদানে</a> তহবিল হিসেবে "লিল্লাহ বোর্ডিং" বেছে নিন।
+      বোর্ডিংয়ের আলাদা আদায় এখানে দেখানো যায় না — জমা কোনো নির্দিষ্ট চার্জের সাথে বাঁধা নয়, তাই তালিবুল ইলমর মোট বকেয়া নিচের তালিকায় দেওয়া আছে।
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>এই মাসের বোর্ডিং চার্জ তৈরি</h2>
+    <p class="bd-note">মাসের শুরুতে একবার চালান। যাদের প্রোফাইলে বোর্ডিং চালু এবং বিভাগের (বা তার নিজের) বোর্ডিং ফি নির্ধারিত, তাদের লেজারে বিল বসবে; "লিল্লাহ" চিহ্নিতদের বিলের সাথে সাথে মওকুফ বসবে। একই মাসে আবার চালালে ডাবল বিল হয় না।</p>
+    <form method="POST" action="/admin/boarding/generate" class="bd-filter" style="margin-top:8px;">
+      <input type="hidden" name="month" value="<%= month %>" />
+      <div><label>সেশন</label><input type="text" name="session" value="<%= session %>" style="max-width:120px;" /></div>
+      <button type="submit" class="btn bd-green" style="padding:10px 16px;">⚙️ <%= month %> মাসের চার্জ তৈরি করুন</button>
+    </form>
+    <p class="bd-note" style="margin-top:8px;">বিভাগের বোর্ডিং ফি: <a href="/admin/fees">ফি ম্যানেজ করুন</a> → বিভাগ → "সেশন ফি ও নিয়মিত ফি"। তালিবুল ইলমর বোর্ডিং/লিল্লাহ চালু: তার প্রোফাইল পেজে।</p>
+  </div>
+
+  <div class="card">
+    <h2>বোর্ডারদের তালিকা (<%= month %>)</h2>
+    <% if (rows.length === 0) { %>
+      <p class="sub">এখনো কোনো তালিবুল ইলমর বোর্ডিং চালু করা হয়নি। তালিবুল ইলমর প্রোফাইল পেজে "🍲 বোর্ডিংয়ে থাকে" চালু করুন।</p>
+    <% } else { %>
+    <div class="bd-scroll">
+      <table>
+        <thead><tr><th>নাম</th><th>বিভাগ</th><th>ধরন</th><th>এ মাসে বিল</th><th>মওকুফ</th><th>মোট বকেয়া</th><th></th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (r) { %>
+          <tr>
+            <td><strong><%= r.student.name %></strong></td>
+            <td><%= r.className %></td>
+            <td><span class="bd-badge <%= r.lillah ? 'lillah' : 'pay' %>"><%= r.lillah ? 'লিল্লাহ' : 'ফি-সহ' %></span></td>
+            <td>৳ <%= r.charged %></td>
+            <td><%= r.waived ? '৳ ' + r.waived : '—' %></td>
+            <td style="<%= r.totalDue > 0 ? 'color:#b91c1c; font-weight:700;' : '' %>">৳ <%= r.totalDue %></td>
+            <td><a href="/students/<%= r.classSlug %>/<%= r.student.id %>/fees">ফি লেজার →</a></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </div>
+
+    </div>
+  </div>
+</body>
+</html>

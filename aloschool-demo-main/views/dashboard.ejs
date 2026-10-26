@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title><%= settings.schoolName || 'মাদ্রাসা ম্যানেজমেন্ট সিস্টেম' %> — এডমিন প্যানেল</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+<%- include('_style') %>
+<%- include('_pwa') %>
+</head>
+<body class="page-dashboard">
+  <div class="app-shell">
+    <%- include('_sidebar') %>
+    <div class="main-content">
+
+  <div class="dash-wrap">
+
+  <div class="card dashboard-hero">
+    <div class="brand-header" style="justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:14px;">
+      <div style="display:flex; gap:12px; align-items:center;">
+        <% if (settings.logoDataUrl) { %>
+          <img class="brand-logo" src="<%= settings.logoDataUrl %>" alt="লোগো" />
+        <% } %>
+        <div>
+          <h1 style="margin:0; font-size:18px;">আসসালামু আলাইকুম, অ্যাডমিন!</h1>
+          <p class="sub" style="margin:2px 0 0;"><%= settings.schoolName || 'মাদ্রাসা ম্যানেজমেন্ট সিস্টেম' %>-এর প্রশাসনিক ড্যাশবোর্ডে আপনাকে স্বাগতম।</p>
+        </div>
+      </div>
+      <div class="date-pill">
+        <div style="font-weight:700;"><%= todayBn.date %></div>
+        <div style="font-size:11px; color:#666; margin-top:2px;"><%= todayBn.weekday %></div>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <a href="/students" class="stat-card tinted bg-blue">
+        <div class="stat-icon" style="background:#047857;">🧑</div>
+        <div class="num"><%= totalStudents %></div>
+        <div class="label">মোট তালিবুল ইলম</div>
+        <% if (trends && trends.totalStudents) { %>
+          <div class="trend trend-<%= trends.totalStudents.dir %>"><%= trends.totalStudents.dir === 'up' ? '↑' : '↓' %> <%= trends.totalStudents.diff %> গত মাস থেকে</div>
+        <% } %>
+      </a>
+      <a href="/students" class="stat-card tinted bg-purple">
+        <div class="stat-icon" style="background:#7c3aed;">🏫</div>
+        <div class="num"><%= totalClasses %></div>
+        <div class="label">মোট বিভাগ</div>
+      </a>
+      <a href="/exams" class="stat-card tinted bg-orange">
+        <div class="stat-icon" style="background:#d97706;">📝</div>
+        <div class="num"><%= totalExams %></div>
+        <div class="label">মোট পরীক্ষা</div>
+        <% if (trends && trends.totalExams) { %>
+          <div class="trend trend-<%= trends.totalExams.dir %>"><%= trends.totalExams.dir === 'up' ? '↑' : '↓' %> <%= trends.totalExams.diff %> গত মাস থেকে</div>
+        <% } %>
+      </a>
+      <a href="/admin/teacher-accounts" class="stat-card tinted bg-green">
+        <div class="stat-icon" style="background:#16a34a;">🎓</div>
+        <div class="num"><%= totalTeachers %></div>
+        <div class="label">মোট উস্তাদ</div>
+        <% if (trends && trends.totalTeachers) { %>
+          <div class="trend trend-<%= trends.totalTeachers.dir %>"><%= trends.totalTeachers.dir === 'up' ? '↑' : '↓' %> <%= trends.totalTeachers.diff %> গত মাস থেকে</div>
+        <% } %>
+      </a>
+      <a href="/admin/fees/dues" class="stat-card tinted bg-red">
+        <div class="stat-icon" style="background:#dc2626;">💰</div>
+        <div class="num">৳<%= totalDue.toLocaleString('en-US') %></div>
+        <div class="label">মোট বকেয়া<% if (studentsWithDue > 0) { %> (<%= studentsWithDue %> জন)<% } %></div>
+        <% if (trends && trends.totalDue) { %>
+          <div class="trend trend-<%= trends.totalDue.dir === 'up' ? 'down' : 'up' %>"><%= trends.totalDue.dir === 'up' ? '↑' : '↓' %> <%= trends.totalDue.percent %>% গত মাস থেকে</div>
+        <% } %>
+      </a>
+    </div>
+  </div>
+
+  <% if (typeof analytics !== 'undefined' && analytics) { %>
+  <style>
+    .an-head { display:flex; align-items:center; justify-content:space-between; margin:4px 2px 12px; }
+    .an-head h2 { margin:0; font-size:17px; color:#0f172a; letter-spacing:-0.01em; }
+    .an-head span { font-size:12px; color:#64748b; }
+    .an-grid { display:grid; grid-template-columns:1fr; gap:16px; margin-bottom:20px; }
+    @media (min-width: 900px) { .an-grid { grid-template-columns:repeat(2, minmax(0,1fr)); gap:20px; } }
+    .an-card .an-title { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:0 0 4px; font-size:14px; font-weight:700; color:#0f172a; }
+    .an-card .an-sub { font-size:12px; color:#64748b; margin:0 0 12px; }
+    .an-chip { font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; background:#e0e7ff; color:#4338ca; white-space:nowrap; }
+    .an-chip.pos { background:#dcfce7; color:#15803d; } .an-chip.neg { background:#fee2e2; color:#b91c1c; }
+    .an-svg { width:100%; height:auto; display:block; }
+    .an-svg text { font-family:inherit; }
+    .an-bar { transform-origin:bottom; transform-box:fill-box; animation:anGrow .7s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes anGrow { from { transform:scaleY(0); } to { transform:scaleY(1); } }
+    .an-legend { display:flex; gap:14px; font-size:12px; color:#475569; margin-top:6px; flex-wrap:wrap; }
+    .an-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px; }
+    .an-hb { display:flex; align-items:center; gap:10px; padding:6px 0; font-size:13px; }
+    .an-hb .nm { width:84px; flex-shrink:0; color:#334155; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .an-hb .track { flex:1; height:10px; background:#eef2f7; border-radius:999px; overflow:hidden; }
+    .an-hb .fill { height:100%; border-radius:999px; width:var(--w); animation:anW .8s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes anW { from { width:0; } to { width:var(--w); } }
+    .an-hb .val { min-width:64px; text-align:right; font-weight:700; color:#0f172a; }
+    @media (prefers-reduced-motion: reduce) { .an-bar, .an-hb .fill { animation:none; } }
+  </style>
+
+  <div class="an-head"><h2>📊 বিশ্লেষণ ও পরিসংখ্যান</h2><span>রিয়েল ডেটার ভিত্তিতে</span></div>
+  <div class="an-grid">
+
+    <%# 1) আয় বনাম ব্যয় — গত ৬ মাস %>
+    <% const ie = analytics.incomeExpense; const ieMax = Math.max(1, ...ie.map(m => Math.max(m.income, m.expense)));
+       const ieNet = ie.reduce((a, m) => a + m.income - m.expense, 0); const bn = n => n.toLocaleString('en-US'); %>
+    <div class="card an-card">
+      <p class="an-title">আয় বনাম ব্যয় (গত ৬ মাস) <span class="an-chip <%= ieNet >= 0 ? 'pos' : 'neg' %>">নেট ৳<%= bn(ieNet) %></span></p>
+      <p class="an-sub">ফি আদায় বনাম বেতন + অন্যান্য খরচ + ঋণ পরিশোধ</p>
+      <svg class="an-svg" viewBox="0 0 360 190" role="img" aria-label="আয় বনাম ব্যয় চার্ট">
+        <defs>
+          <linearGradient id="gInc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22c55e"/><stop offset="1" stop-color="#15803d"/></linearGradient>
+          <linearGradient id="gExp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f87171"/><stop offset="1" stop-color="#b91c1c"/></linearGradient>
+        </defs>
+        <% [0, .5, 1].forEach(function (t) { const y = 160 - t * 130; %>
+          <line x1="8" x2="352" y1="<%= y %>" y2="<%= y %>" stroke="#e2e8f0" stroke-dasharray="3 4"/>
+        <% }) %>
+        <% ie.forEach(function (m, i) { const gx = 14 + i * 57; const hi = m.income / ieMax * 130, he = m.expense / ieMax * 130; %>
+          <rect class="an-bar" x="<%= gx %>" y="<%= 160 - hi %>" width="20" height="<%= Math.max(hi, 2) %>" rx="4" fill="url(#gInc)" style="animation-delay:<%= i * .06 %>s"><title>আয় ৳<%= bn(m.income) %></title></rect>
+          <rect class="an-bar" x="<%= gx + 23 %>" y="<%= 160 - he %>" width="20" height="<%= Math.max(he, 2) %>" rx="4" fill="url(#gExp)" style="animation-delay:<%= i * .06 + .03 %>s"><title>ব্যয় ৳<%= bn(m.expense) %></title></rect>
+          <text x="<%= gx + 21.5 %>" y="180" text-anchor="middle" font-size="11" fill="#64748b"><%= m.label %></text>
+        <% }) %>
+      </svg>
+      <div class="an-legend"><span><i style="background:#16a34a"></i>আয়</span><span><i style="background:#dc2626"></i>ব্যয়</span></div>
+    </div>
+
+    <%# 2) উপস্থিতির ধারা — গত ৭ দিন %>
+    <% const aw = analytics.attendanceWeek; const pts = aw.map((d, i) => d.rate === null ? null : { x: 24 + i * 52, y: 130 - d.rate * 1.1, r: d.rate, l: d.label }).filter(Boolean);
+       const valid = aw.filter(d => d.rate !== null); const avg = valid.length ? Math.round(valid.reduce((a, d) => a + d.rate, 0) / valid.length) : null;
+       const line = pts.map((p, i) => (i ? 'L' : 'M') + p.x + ' ' + p.y).join(' '); %>
+    <div class="card an-card">
+      <p class="an-title">উপস্থিতির ধারা (গত ৭ দিন) <% if (avg !== null) { %><span class="an-chip">গড় <%= avg %>%</span><% } %></p>
+      <p class="an-sub">যেসব দিনে উপস্থিতি নেওয়া হয়েছে শুধু সেই দিনগুলো</p>
+      <% if (pts.length === 0) { %>
+        <p class="empty">গত ৭ দিনে কোনো উপস্থিতির রেকর্ড নেই।</p>
+      <% } else { %>
+      <svg class="an-svg" viewBox="0 0 360 170" role="img" aria-label="উপস্থিতির ধারা">
+        <defs><linearGradient id="gAtt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#047857" stop-opacity=".35"/><stop offset="1" stop-color="#047857" stop-opacity="0"/></linearGradient></defs>
+        <% [0, 50, 100].forEach(function (v) { const y = 130 - v * 1.1; %>
+          <line x1="8" x2="352" y1="<%= y %>" y2="<%= y %>" stroke="#e2e8f0" stroke-dasharray="3 4"/>
+          <text x="352" y="<%= y - 3 %>" text-anchor="end" font-size="9" fill="#94a3b8"><%= v %>%</text>
+        <% }) %>
+        <% if (pts.length > 1) { %><path d="<%= line %> L<%= pts[pts.length-1].x %> 130 L<%= pts[0].x %> 130 Z" fill="url(#gAtt)"/><% } %>
+        <path d="<%= line %>" fill="none" stroke="#047857" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <% pts.forEach(function (p) { %>
+          <circle cx="<%= p.x %>" cy="<%= p.y %>" r="4.5" fill="#fff" stroke="#047857" stroke-width="2.5"><title><%= p.l %>: <%= p.r %>%</title></circle>
+          <text x="<%= p.x %>" y="<%= p.y - 10 %>" text-anchor="middle" font-size="10" font-weight="700" fill="#1e3a8a"><%= p.r %>%</text>
+        <% }) %>
+        <% aw.forEach(function (d, i) { %><text x="<%= 24 + i * 52 %>" y="152" text-anchor="middle" font-size="11" fill="<%= d.rate === null ? '#cbd5e1' : '#64748b' %>"><%= d.label %></text><% }) %>
+      </svg>
+      <% } %>
+    </div>
+
+    <%# 3) বিভাগভিত্তিক তালিবুল ইলম %>
+    <% const cs = analytics.classStats; const csMax = Math.max(1, ...cs.map(c => c.students)); %>
+    <div class="card an-card">
+      <p class="an-title">বিভাগভিত্তিক তালিবুল ইলম <span class="an-chip">মোট <%= cs.reduce((a, c) => a + c.students, 0) %> জন</span></p>
+      <p class="an-sub">চলতি সেশনের সক্রিয় তালিবুল ইলম</p>
+      <% if (cs.length === 0) { %><p class="empty">কোনো বিভাগ যোগ করা হয়নি।</p><% } %>
+      <% cs.forEach(function (c, i) { %>
+        <div class="an-hb"><span class="nm" title="<%= c.name %>"><%= c.name %></span>
+          <span class="track"><span class="fill" style="--w:<%= Math.round(c.students / csMax * 100) %>%; background:linear-gradient(90deg,#34d399,#047857); animation-delay:<%= i * .05 %>s; display:block;"></span></span>
+          <span class="val"><%= c.students %></span></div>
+      <% }) %>
+    </div>
+
+    <%# 4) বিভাগভিত্তিক বকেয়া %>
+    <% const dueMax = Math.max(1, ...cs.map(c => c.due)); const dueTotal = cs.reduce((a, c) => a + c.due, 0); %>
+    <div class="card an-card">
+      <p class="an-title">বিভাগভিত্তিক বকেয়া ফি <span class="an-chip neg">৳<%= bn(dueTotal) %></span></p>
+      <p class="an-sub">কোন বিভাগে সবচেয়ে বেশি বকেয়া — আগে ফলো-আপ করুন</p>
+      <% if (dueTotal === 0) { %><p class="empty">🎉 কোনো বকেয়া নেই।</p><% } %>
+      <% cs.filter(c => c.due > 0).sort((a, b) => b.due - a.due).forEach(function (c, i) { %>
+        <div class="an-hb"><span class="nm" title="<%= c.name %>"><%= c.name %></span>
+          <span class="track"><span class="fill" style="--w:<%= Math.round(c.due / dueMax * 100) %>%; background:linear-gradient(90deg,#fca5a5,#dc2626); animation-delay:<%= i * .05 %>s; display:block;"></span></span>
+          <span class="val">৳<%= bn(c.due) %></span></div>
+      <% }) %>
+    </div>
+
+    <%# 5) এই মাসের ফি টার্গেট — মাসিক প্রত্যাশিত ফি বনাম আদায় %>
+    <% const tgt = feeSummaryCard.monthlyFeeTotal, got = feeSummaryCard.thisMonthPaid; const tp = tgt > 0 ? Math.min(100, Math.round(got / tgt * 100)) : 0; const R = 52, C = 2 * Math.PI * R; %>
+    <div class="card an-card">
+      <p class="an-title">এই মাসের ফি টার্গেট <span class="an-chip <%= tp >= 80 ? 'pos' : (tp < 40 ? 'neg' : '') %>"><%= tp %>% অর্জিত</span></p>
+      <p class="an-sub">মাসিক প্রত্যাশিত ফি-এর তুলনায় এ পর্যন্ত আদায়</p>
+      <div class="donut-row">
+        <svg viewBox="0 0 140 140" width="130" height="130" role="img" aria-label="ফি টার্গেট">
+          <defs><linearGradient id="gTgt" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22c55e"/><stop offset="1" stop-color="#047857"/></linearGradient></defs>
+          <circle cx="70" cy="70" r="<%= R %>" fill="none" stroke="#eef2f7" stroke-width="14"/>
+          <circle cx="70" cy="70" r="<%= R %>" fill="none" stroke="url(#gTgt)" stroke-width="14" stroke-linecap="round" stroke-dasharray="<%= (C * tp / 100).toFixed(1) %> <%= C.toFixed(1) %>" transform="rotate(-90 70 70)"/>
+          <text x="70" y="76" text-anchor="middle" font-size="26" font-weight="700" fill="#0f172a"><%= tp %>%</text>
+        </svg>
+        <div class="donut-legend">
+          <div class="dl-row">আদায় <span class="dl-num" style="color:#16a34a;">৳<%= bn(got) %></span></div>
+          <div class="dl-row">টার্গেট <span class="dl-num">৳<%= bn(tgt) %></span></div>
+          <div class="dl-row" style="border-top:1px solid #eee; margin-top:6px; padding-top:6px;">বাকি <span class="dl-num" style="color:#dc2626;">৳<%= bn(Math.max(0, tgt - got)) %></span></div>
+        </div>
+      </div>
+    </div>
+
+    <%# 6) সর্বশেষ পরীক্ষার মারহালা / মূল্যায়ন বিশ্লেষণ %>
+    <% const ex = analytics.examAnalytics; %>
+    <div class="card an-card">
+      <% if (!ex) { %>
+        <p class="an-title">পরীক্ষার বিশ্লেষণ</p>
+        <p class="empty">এখনো কোনো পরীক্ষার সম্পূর্ণ মার্কস এন্ট্রি হয়নি।</p>
+      <% } else { %>
+        <p class="an-title">পরীক্ষার বিশ্লেষণ <span class="an-chip <%= ex.passRate >= 80 ? 'pos' : (ex.passRate < 50 ? 'neg' : '') %>">পাশ <%= ex.passRate %>%</span></p>
+        <p class="an-sub"><%= ex.title %> — অংশগ্রহণ <%= ex.appeared %> জন, পাশ <%= ex.passed %> জন</p>
+        <% ex.perClass.forEach(function (c, i) { %>
+          <div class="an-hb"><span class="nm" title="<%= c.name %>"><%= c.name %></span>
+            <span class="track"><span class="fill" style="--w:<%= c.passRate %>%; background:linear-gradient(90deg,<%= c.passRate >= 80 ? '#86efac,#16a34a' : (c.passRate >= 50 ? '#fcd34d,#d97706' : '#fca5a5,#dc2626') %>); animation-delay:<%= i * .05 %>s; display:block;"></span></span>
+            <span class="val" title="গড় <%= c.avg %>%"><%= c.passRate %>%</span></div>
+        <% }) %>
+        <p class="section-label" style="margin:14px 0 4px;">🏆 শীর্ষ ৫ জন</p>
+        <% ex.top.forEach(function (t, i) { %>
+          <div class="an-hb" style="padding:4px 0;"><span style="width:22px; font-weight:700; color:#d97706;"><%= i + 1 %></span>
+            <span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><%= t.name %> <small style="color:#94a3b8;">· <%= t.className %></small></span>
+            <span class="val"><%= t.pct.toFixed(1) %>% <small style="color:#64748b;"><%= t.grade %></small></span></div>
+        <% }) %>
+      <% } %>
+    </div>
+
+  </div>
+  <% } %>
+
+  <div class="dash-grid">
+    <div class="dash-col dash-left">
+  <div class="card dc-quick">
+    <p class="section-label" style="margin-top:0;">দ্রুত কাজ</p>
+    <div class="quick-grid">
+      <a href="/students" class="quick-item">
+        <span class="qi-icon" style="background:#d1fae5; color:#047857;">🧑</span> তালিবুল ইলম
+      </a>
+      <a href="/admissions" class="quick-item" style="position:relative;">
+        <span class="qi-icon" style="background:#dcfce7; color:#16a34a;">📝</span> ভর্তি
+        <% if (pendingAdmissions > 0) { %><span class="pill" style="position:absolute; top:-4px; right:6px; background:#fee2e2; color:#b91c1c;"><%= pendingAdmissions %></span><% } %>
+      </a>
+      <a href="/admin/fees" class="quick-item">
+        <span class="qi-icon" style="background:#ede9fe; color:#7c3aed;">💳</span> ফি গ্রহণ
+      </a>
+      <a href="/admin/attendance/student" class="quick-item">
+        <span class="qi-icon" style="background:#d1fae5; color:#059669;">✅</span> উপস্থিতি
+      </a>
+      <a href="/exams" class="quick-item">
+        <span class="qi-icon" style="background:#fee2e2; color:#dc2626;">🏆</span> মারহালা / মূল্যায়ন
+      </a>
+      <a href="/admin/routine" class="quick-item">
+        <span class="qi-icon" style="background:#ffedd5; color:#d97706;">🗓️</span> রুটিন
+      </a>
+      <a href="/admin/teacher-accounts" class="quick-item">
+        <span class="qi-icon" style="background:#e0e7ff; color:#4338ca;">🏫</span> উস্তাদ
+      </a>
+      <a href="/admin/fees/dues" class="quick-item">
+        <span class="qi-icon" style="background:#fee2e2; color:#b91c1c;">📉</span> বকেয়া
+      </a>
+    </div>
+  </div>
+
+  <div class="card dc-trend">
+    <p class="section-label" style="margin-top:0;">ফি আদায়ের প্রবণতা (গত ৬ মাস)</p>
+    <% const maxTrend = Math.max(1, ...collectionTrend.map(m => m.amount)); %>
+    <% if (collectionTrend.every(m => m.amount === 0)) { %>
+      <p class="empty">এখনো কোনো মাসে ফি আদায়ের রেকর্ড নেই।</p>
+    <% } else { %>
+    <div class="trend-chart">
+      <% collectionTrend.forEach(function (m) { %>
+        <div class="tr-col">
+          <div class="tr-amt"><%= m.amount > 0 ? '৳' + (m.amount >= 1000 ? Math.round(m.amount/1000) + 'k' : m.amount) : '' %></div>
+          <div class="tr-bar" style="--r:<%= (m.amount / maxTrend).toFixed(4) %>;"></div>
+          <div class="tr-lbl"><%= m.label %></div>
+        </div>
+      <% }) %>
+    </div>
+    <% } %>
+  </div>
+
+  <div class="card dc-act">
+    <p class="section-label" style="margin-top:0;">সাম্প্রতিক কার্যক্রম</p>
+    <% if (recentActivities.length === 0) { %>
+      <p class="empty">এখনো কোনো কার্যক্রম রেকর্ড হয়নি।</p>
+    <% } else { %>
+      <% recentActivities.forEach(function (a) { %>
+        <% if (a.link) { %>
+        <a href="<%= a.link %>" class="activity-row" style="text-decoration:none; color:inherit;">
+          <span class="ai-icon" style="background:<%= a.style.bg %>; color:<%= a.style.color %>;"><%= a.style.icon %></span>
+          <div>
+            <div class="ai-text"><%= a.message %></div>
+            <div class="ai-time"><%= a.timeAgo %></div>
+          </div>
+          <span class="arrow">›</span>
+        </a>
+        <% } else { %>
+        <div class="activity-row">
+          <span class="ai-icon" style="background:<%= a.style.bg %>; color:<%= a.style.color %>;"><%= a.style.icon %></span>
+          <div>
+            <div class="ai-text"><%= a.message %></div>
+            <div class="ai-time"><%= a.timeAgo %></div>
+          </div>
+        </div>
+        <% } %>
+      <% }) %>
+      <a href="/admin/notifications" class="menu-btn" style="margin-top:10px; margin-bottom:0;"><span class="icon">🔔</span> সব দেখুন <span class="arrow">›</span></a>
+    <% } %>
+  </div>
+    </div>
+    <div class="dash-col dash-right">
+  <div class="card dc-tasks">
+    <p class="section-label" style="margin-top:0;">গুরুত্বপূর্ণ / অপেক্ষমাণ কাজ</p>
+    <% if (urgentTasks.length === 0) { %>
+      <p class="empty">সব কাজ সম্পন্ন — এই মুহূর্তে কিছু অপেক্ষমাণ নেই।</p>
+    <% } else { %>
+      <% urgentTasks.forEach(function (t) { %>
+        <a href="<%= t.href %>" class="task-row">
+          <span class="task-ic" style="background:<%= t.bg %>; color:<%= t.color %>;"><%= t.icon %></span>
+          <span class="task-text"><%= t.text %></span>
+          <span class="task-count" style="background:<%= t.bg %>; color:<%= t.color %>;"><%= t.count %></span>
+          <span class="arrow">›</span>
+        </a>
+      <% }) %>
+    <% } %>
+  </div>
+
+  <div class="card dc-attend">
+    <p class="section-label" style="margin-top:0;">আজকের উপস্থিতি</p>
+    <% if (attendanceToday.total > 0) { %>
+      <div class="donut-row">
+        <svg viewBox="0 0 140 140" width="140" height="140">
+          <circle cx="70" cy="70" r="<%= attendanceToday.radius %>" fill="none" stroke="#eef2f7" stroke-width="14" />
+          <% attendanceToday.donut.forEach(function (seg) { %>
+            <circle cx="70" cy="70" r="<%= attendanceToday.radius %>" fill="none" stroke="<%= seg.color %>" stroke-width="14"
+              stroke-dasharray="<%= seg.dasharray %>" stroke-dashoffset="<%= seg.dashoffset %>"
+              transform="rotate(-90 70 70)" />
+          <% }) %>
+          <text x="70" y="65" text-anchor="middle" font-size="24" font-weight="700" fill="#111"><%= attendanceToday.percentage %>%</text>
+          <text x="70" y="84" text-anchor="middle" font-size="10" fill="#888">উপস্থিতির হার</text>
+        </svg>
+        <div class="donut-legend">
+          <div class="dl-row"><span class="dl-dot" style="background:#16a34a;"></span> উপস্থিত <span class="dl-num"><%= attendanceToday.present %></span></div>
+          <div class="dl-row"><span class="dl-dot" style="background:#dc2626;"></span> অনুপস্থিত <span class="dl-num"><%= attendanceToday.absent %></span></div>
+          <div class="dl-row"><span class="dl-dot" style="background:#d97706;"></span> ছুটি <span class="dl-num"><%= attendanceToday.leave %></span></div>
+          <div class="dl-row" style="border-top:1px solid #eee; margin-top:6px; padding-top:6px;">মোট তালিবুল ইলম <span class="dl-num"><%= totalStudents %></span></div>
+        </div>
+      </div>
+    <% } else { %>
+      <p class="empty">আজ এখনো কোনো বিভাগের উপস্থিতি নেওয়া হয়নি।</p>
+    <% } %>
+  </div>
+
+  <div class="card dc-fin">
+    <p class="section-label" style="margin-top:0;">আয়-ব্যয় সারাংশ (এই মাস)</p>
+    <div class="fs-row"><span class="fs-ic" style="background:#d1fae5; color:#059669;">💰</span> এই মাসে আদায় (আয়) <span class="fs-val" style="color:#16a34a;">৳<%= feeSummaryCard.thisMonthPaid.toLocaleString('en-US') %></span></div>
+    <div class="fs-row"><span class="fs-ic" style="background:#fee2e2; color:#dc2626;">🎓</span> উস্তাদ বেতন পরিশোধ <span class="fs-val" style="color:#dc2626;">৳<%= feeSummaryCard.salaryPaidThisMonth.toLocaleString('en-US') %></span></div>
+    <div class="fs-row"><span class="fs-ic" style="background:#fee2e2; color:#dc2626;">🧾</span> অন্যান্য খরচ (বিদ্যুৎ, চিকিৎসা, মেটেরিয়াল...) <span class="fs-val" style="color:#dc2626;">৳<%= feeSummaryCard.otherExpenseThisMonth.toLocaleString('en-US') %></span></div>
+    <div class="fs-row"><span class="fs-ic" style="background:#fee2e2; color:#dc2626;">🏦</span> ঋণ পরিশোধ <span class="fs-val" style="color:#dc2626;">৳<%= feeSummaryCard.loanRepaymentThisMonth.toLocaleString('en-US') %></span></div>
+    <div class="fs-row" style="border-top:1px solid #eee; margin-top:4px; padding-top:10px;"><span class="fs-ic" style="background:#fee2e2; color:#b91c1c;">📤</span> মোট ব্যয় <span class="fs-val" style="color:#b91c1c;">৳<%= feeSummaryCard.totalExpenseThisMonth.toLocaleString('en-US') %></span></div>
+    <div class="fs-row"><span class="fs-ic" style="background:<%= feeSummaryCard.netThisMonth >= 0 ? '#d1fae5' : '#fee2e2' %>; color:<%= feeSummaryCard.netThisMonth >= 0 ? '#059669' : '#dc2626' %>;">📊</span> নেট (আয় - ব্যয়) <span class="fs-val" style="color:<%= feeSummaryCard.netThisMonth >= 0 ? '#16a34a' : '#dc2626' %>;">৳<%= feeSummaryCard.netThisMonth.toLocaleString('en-US') %></span></div>
+    <div class="fs-row"><span class="fs-ic" style="background:#ede9fe; color:#7c3aed;">📋</span> মোট ফি (মাসিক প্রত্যাশিত) <span class="fs-val">৳<%= feeSummaryCard.monthlyFeeTotal.toLocaleString('en-US') %></span></div>
+    <% if (feeSummaryCard.totalOutstandingLoan > 0) { %>
+      <div class="fs-row"><span class="fs-ic" style="background:#fef3c7; color:#92400e;">🏦</span> মোট বকেয়া ঋণ <span class="fs-val" style="color:#b45309;">৳<%= feeSummaryCard.totalOutstandingLoan.toLocaleString('en-US') %></span></div>
+    <% } %>
+    <% if (feeSummaryCard.incomePercent > 0 || feeSummaryCard.duePercent > 0) { %>
+      <div class="fs-bar">
+        <div class="fs-bar-fill" style="width:<%= feeSummaryCard.incomePercent %>%;"></div>
+      </div>
+      <div class="fs-bar-labels">
+        <span style="color:#16a34a;">আদায় <%= feeSummaryCard.incomePercent %>%</span>
+        <span style="color:#dc2626;">বকেয়া <%= feeSummaryCard.duePercent %>%</span>
+      </div>
+    <% } %>
+    <a href="/admin/expenses" class="menu-btn" style="margin-top:14px; margin-bottom:0;"><span class="icon">🧾</span> ব্যয় ব্যবস্থাপনা <span class="arrow">›</span></a>
+    <a href="/admin/loans" class="menu-btn" style="margin-top:8px; margin-bottom:0;"><span class="icon">🏦</span> ঋণ ব্যবস্থাপনা <span class="arrow">›</span></a>
+  </div>
+    </div>
+  </div>
+
+  </div>
+
+    </div>
+  </div>
+</body>
+</html>

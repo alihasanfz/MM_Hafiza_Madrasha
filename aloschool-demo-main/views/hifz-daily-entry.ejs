@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>দৈনিক সবক — <%= (settings && settings.schoolName) || 'মাদ্রাসা ম্যানেজমেন্ট সিস্টেম' %></title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+<%- include('_style') %>
+<%- include('_pwa') %>
+<style>
+  /* ---------- দৈনিক সবক — ফাস্ট এন্ট্রি (hz- প্রিফিক্স, অন্য পেজের স্টাইলে হাত পড়ে না) ---------- */
+  .hz-wrap { max-width: 980px; margin: 0 auto; }
+  .hz-toolbar { display: grid; gap: 10px; grid-template-columns: 1fr; }
+  @media (min-width: 640px) { .hz-toolbar { grid-template-columns: 1.3fr 1fr auto; align-items: end; } }
+  .hz-toolbar label { margin: 0 0 4px; }
+  .hz-toolbar select, .hz-toolbar input { width: 100%; }
+  .hz-datebox { display: flex; gap: 6px; }
+  .hz-datebox a { display: inline-flex; align-items: center; justify-content: center; min-width: 42px; border-radius: 8px; background: #ecfdf5; color: #047857; font-weight: 700; border: 1px solid #a7f3d0; text-decoration: none; }
+  .hz-datebox a.disabled { opacity: .35; pointer-events: none; }
+  .hz-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; color: #475569; }
+  .hz-stats .hz-chip { background: #f1f5f9; border-radius: 999px; padding: 3px 10px; }
+  .hz-stats .hz-chip b { color: #047857; }
+
+  .hz-search { width: 100%; margin-top: 12px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 15px; }
+
+  .hz-alert { border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; font-size: 14px; }
+  .hz-alert.ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; font-weight: 600; }
+  .hz-alert.err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  .hz-alert.err ul { margin: 6px 0 0; padding-left: 20px; }
+
+  .hz-row { background: #fff; border: 1px solid #e2e8f0; border-left: 4px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 10px; transition: border-color .15s, box-shadow .15s; }
+  .hz-row.has-data { border-left-color: #6ee7b7; }
+  .hz-row.dirty { border-left-color: #047857; box-shadow: 0 2px 10px rgba(4,120,87,.12); }
+  .hz-row.has-error { border-left-color: #dc2626; }
+  .hz-row.hidden { display: none; }
+
+  .hz-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .hz-roll { flex: 0 0 auto; min-width: 34px; height: 34px; border-radius: 50%; background: #047857; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; padding: 0 6px; }
+  .hz-name { flex: 1; font-weight: 700; font-size: 16px; line-height: 1.25; min-width: 0; overflow-wrap: anywhere; }
+  .hz-name small { display: block; font-weight: 400; font-size: 12px; color: #64748b; margin-top: 2px; }
+  .hz-report { flex: 0 0 auto; font-size: 12px; color: #047857; background: #ecfdf5; border-radius: 999px; padding: 4px 10px; text-decoration: none; font-weight: 600; }
+
+  .hz-fields { display: grid; gap: 8px; grid-template-columns: 1fr; }
+  .hz-field label { display: block; font-size: 12px; color: #475569; margin: 0 0 3px; font-weight: 600; }
+  .hz-field input[type=text], .hz-field input[type=number], .hz-field textarea {
+    width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 15px; background: #fff;
+  }
+  .hz-field input:focus, .hz-field textarea:focus, .hz-search:focus { outline: none; border-color: #047857; box-shadow: 0 0 0 3px rgba(4,120,87,.15); }
+  @media (min-width: 560px) {
+    .hz-fields { grid-template-columns: 90px 1fr 1fr 1fr; }
+    .hz-f-rating, .hz-f-comment { grid-column: 1 / -1; }
+  }
+  .hz-f-para input { text-align: center; font-weight: 700; }
+
+  .hz-ratings { display: flex; gap: 6px; flex-wrap: wrap; }
+  .hz-ratings label.hz-rate { margin: 0; cursor: pointer; flex: 1 1 calc(50% - 6px); min-width: 0; }
+  @media (min-width: 560px) { .hz-ratings label.hz-rate { flex: 1 1 0; } }
+  .hz-rate input { position: absolute; opacity: 0; pointer-events: none; }
+  .hz-rate span { display: block; text-align: center; padding: 9px 6px; border-radius: 8px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 14px; font-weight: 600; color: #475569; user-select: none; -webkit-tap-highlight-color: transparent; }
+  .hz-rate input:focus-visible + span { box-shadow: 0 0 0 3px rgba(4,120,87,.25); }
+  .hz-rate input:checked + span { border-color: var(--rc); background: var(--rb); color: var(--rc); }
+
+  .hz-comment-toggle { background: none; border: none; padding: 4px 0; color: #047857; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .hz-comment-box { display: none; margin-top: 4px; }
+  .hz-comment-box.open { display: block; }
+
+  .hz-empty { text-align: center; color: #64748b; padding: 28px 10px; }
+
+  .hz-savebar { position: sticky; bottom: 0; z-index: 30; margin: 14px -4px 0; padding: 10px 12px; background: rgba(255,255,255,.96); backdrop-filter: blur(6px); border-top: 1px solid #d1fae5; box-shadow: 0 -4px 14px rgba(15,23,42,.08); display: flex; gap: 10px; align-items: center; border-radius: 12px 12px 0 0; }
+  .hz-savebar .hz-count { flex: 1; font-size: 13px; color: #475569; }
+  .hz-savebar .hz-count b { color: #047857; font-size: 16px; }
+  .hz-savebar button { background: #047857; color: #fff; min-width: 140px; }
+  .hz-savebar button:disabled { opacity: .55; cursor: not-allowed; }
+  @media (max-width: 899px) { .hz-admin .hz-savebar { bottom: 72px; border-radius: 12px; } }
+  .hz-legend { font-size: 12px; color: #64748b; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<%
+  var _teacher = (typeof isTeacher !== 'undefined') && isTeacher;
+  var _crumbs = [{ label: 'হোম', href: _teacher ? '/teacher/panel' : '/panel' }, { label: 'দৈনিক সবক' }];
+  var _recorded = rows.filter(function (r) { return r.record; }).length;
+  function _fmtDate(d) { try { return new Date(d + 'T00:00:00').toLocaleDateString('bn-BD', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return d; } }
+  function _val(r, key) {
+    if (r.posted) return r.posted[key] == null ? '' : r.posted[key];
+    if (key === 'para_no') return r.record ? r.record.para_no : (r.lastParaNo || '');
+    return r.record ? (r.record[key] || '') : '';
+  }
+  var _prevDate = new Date(date + 'T00:00:00'); _prevDate.setDate(_prevDate.getDate() - 1);
+  var _nextDate = new Date(date + 'T00:00:00'); _nextDate.setDate(_nextDate.getDate() + 1);
+  function _iso(d) { var m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0'); return d.getFullYear() + '-' + m + '-' + dd; }
+  var _prevIso = _iso(_prevDate), _nextIso = _iso(_nextDate);
+%>
+
+<% if (_teacher) { %>
+  <div class="nav">
+    <a href="/teacher/panel">🏠 হোম</a>
+    <a href="/teacher/logout">🚪 লগআউট</a>
+  </div>
+  <div class="hz-wrap">
+<% } else { %>
+  <div class="app-shell hz-admin">
+    <%- include('_sidebar') %>
+    <div class="main-content">
+<% } %>
+
+  <%- include('_page-head', {
+    icon: '📖',
+    title: 'দৈনিক সবক',
+    desc: 'নতুন সবক, সবক দোরা ও আম দোরা — প্রতিদিনের হিফজ অগ্রগতি দ্রুত লিখুন।',
+    crumbs: _crumbs
+  }) %>
+
+  <div class="card hz-wrap" style="max-width:980px;">
+    <% if (!cls) { %>
+      <p class="hz-empty">আপনার জন্য কোনো বিভাগ পাওয়া যায়নি। অ্যাডমিনের সাথে যোগাযোগ করুন।</p>
+    <% } else { %>
+    <form method="GET" action="/hifz/daily-entry" id="hzFilter">
+      <div class="hz-toolbar">
+        <div>
+          <label for="hzClass">বিভাগ</label>
+          <select name="classSlug" id="hzClass" onchange="this.form.submit()">
+            <% classes.forEach(function (c) { %>
+              <option value="<%= c.slug %>" <%= c.slug === classSlug ? 'selected' : '' %>><%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label for="hzDate">তারিখ</label>
+          <div class="hz-datebox">
+            <a href="/hifz/daily-entry?classSlug=<%= encodeURIComponent(classSlug) %>&date=<%= _prevIso %>" title="আগের দিন">‹</a>
+            <input type="date" name="date" id="hzDate" value="<%= date %>" max="<%= today %>" onchange="this.form.submit()" style="flex:1;" />
+            <a href="/hifz/daily-entry?classSlug=<%= encodeURIComponent(classSlug) %>&date=<%= _nextIso %>" title="পরের দিন" class="<%= date >= today ? 'disabled' : '' %>">›</a>
+          </div>
+        </div>
+        <noscript><button type="submit" class="btn btn-secondary">দেখুন</button></noscript>
+      </div>
+    </form>
+
+    <div class="hz-stats">
+      <span class="hz-chip"><%= _fmtDate(date) %></span>
+      <span class="hz-chip">মোট তালিবুল ইলম: <b><%= rows.length %></b></span>
+      <span class="hz-chip">সবক লেখা আছে: <b><%= _recorded %></b></span>
+    </div>
+    <% } %>
+  </div>
+
+  <% if (cls) { %>
+  <div class="hz-wrap">
+    <% if (saved > 0) { %>
+      <div class="hz-alert ok">✓ <%= saved %> জনের সবক সেভ হয়েছে।</div>
+    <% } %>
+    <% if (errors && errors.length) { %>
+      <div class="hz-alert err">
+        <strong>কিছুই সেভ হয়নি — নিচের ভুলগুলো ঠিক করে আবার সেভ করুন:</strong>
+        <ul><% errors.forEach(function (e) { %><li><%= e %></li><% }) %></ul>
+      </div>
+    <% } %>
+
+    <% if (rows.length === 0) { %>
+      <div class="card hz-empty">এই বিভাগে এখনো কোনো তালিবুল ইলম ভর্তি করা হয়নি।</div>
+    <% } else { %>
+
+    <input type="search" class="hz-search" id="hzSearch" placeholder="🔎 নাম বা রোল দিয়ে খুঁজুন…" autocomplete="off" />
+    <p class="hz-legend">যে তালিবুল ইলমের সবক নেই (অনুপস্থিত/ছুটি), তার ঘরগুলো ফাঁকা রাখুন — ফাঁকা সারি সেভ হয় না। মানে (রেটিং) আবার ট্যাপ করলে বাতিল হয়।</p>
+
+    <form method="POST" action="/hifz/daily-entry" id="hzForm" autocomplete="off" style="margin-top:12px;">
+      <input type="hidden" name="classSlug" value="<%= classSlug %>" />
+      <input type="hidden" name="date" value="<%= date %>" />
+
+      <% rows.forEach(function (r) {
+           var s = r.student, id = s.id;
+           var curRating = _val(r, 'rating');
+           var hasErr = r.posted && errors && errors.some(function (e) { return e.indexOf(s.name) === 0; });
+      %>
+      <div class="hz-row <%= r.record ? 'has-data' : '' %> <%= hasErr ? 'has-error' : '' %>" data-search="<%= (s.name + ' ' + (s.roll || '')).toLowerCase() %>">
+        <input type="hidden" name="had_<%= id %>" value="<%= r.record ? '1' : '0' %>" />
+        <div class="hz-head">
+          <div class="hz-roll"><%= s.roll || '—' %></div>
+          <div class="hz-name">
+            <%= s.name %>
+            <% if (!r.record && r.lastParaNo) { %><small>আগের সবক: পারা <%= r.lastParaNo %><%= r.lastSabaq ? ' — ' + r.lastSabaq : '' %></small><% } %>
+          </div>
+          <a class="hz-report" href="/hifz/student/<%= id %>/report" target="_blank" rel="noopener">📊 রিপোর্ট</a>
+        </div>
+
+        <div class="hz-fields">
+          <div class="hz-field hz-f-para">
+            <label for="para_<%= id %>">পারা</label>
+            <input type="number" inputmode="numeric" min="1" max="30" id="para_<%= id %>" name="para_<%= id %>" value="<%= _val(r, 'para_no') %>" placeholder="১–৩০" data-nav />
+          </div>
+          <div class="hz-field">
+            <label for="sabaq_<%= id %>">নতুন সবক</label>
+            <input type="text" maxlength="200" id="sabaq_<%= id %>" name="sabaq_<%= id %>" value="<%= _val(r, 'sabaq') %>" placeholder="যেমন: পৃষ্ঠা ৫" data-nav />
+          </div>
+          <div class="hz-field">
+            <label for="sabaq_dawr_<%= id %>">সবক দোরা</label>
+            <input type="text" maxlength="200" id="sabaq_dawr_<%= id %>" name="sabaq_dawr_<%= id %>" value="<%= _val(r, 'sabaq_dawr') %>" placeholder="যেমন: ৩ পৃষ্ঠা" data-nav />
+          </div>
+          <div class="hz-field">
+            <label for="dawr_<%= id %>">আম দোরা</label>
+            <input type="text" maxlength="200" id="dawr_<%= id %>" name="dawr_<%= id %>" value="<%= _val(r, 'dawr') %>" placeholder="যেমন: ১ পারা" data-nav />
+          </div>
+
+          <div class="hz-field hz-f-rating">
+            <label>মান</label>
+            <div class="hz-ratings" role="radiogroup" aria-label="মান">
+              <% RATINGS.forEach(function (rt) { var m = RATING_META[rt]; %>
+                <label class="hz-rate" style="--rc:<%= m.color %>; --rb:<%= m.bg %>;">
+                  <input type="radio" name="rating_<%= id %>" value="<%= rt %>" <%= curRating === rt ? 'checked' : '' %> />
+                  <span><%= rt %></span>
+                </label>
+              <% }) %>
+            </div>
+          </div>
+
+          <div class="hz-field hz-f-comment">
+            <% var _cm = _val(r, 'comments'); %>
+            <button type="button" class="hz-comment-toggle" data-for="c_<%= id %>"><%= _cm ? '✎ মন্তব্য' : '＋ মন্তব্য যোগ করুন' %></button>
+            <div class="hz-comment-box <%= _cm ? 'open' : '' %>" id="c_<%= id %>">
+              <textarea rows="2" maxlength="500" name="comments_<%= id %>" placeholder="উস্তাদের মন্তব্য (ঐচ্ছিক)"><%= _cm %></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      <% }) %>
+
+      <div class="hz-savebar">
+        <div class="hz-count"><b id="hzDirty">০</b> সারি পরিবর্তিত · <span id="hzFilled">০</span> সারিতে তথ্য আছে</div>
+        <button type="submit" id="hzSave">💾 সেভ করুন</button>
+      </div>
+    </form>
+    <% } %>
+  </div>
+  <% } %>
+
+<% if (_teacher) { %>
+  </div>
+<% } else { %>
+    </div>
+  </div>
+<% } %>
+
+<script>
+(function () {
+  var form = document.getElementById('hzForm');
+  if (!form) return;
+  var rows = Array.prototype.slice.call(form.querySelectorAll('.hz-row'));
+  var bnDigits = '০১২৩৪৫৬৭৮৯';
+  function bn(n) { return String(n).replace(/\d/g, function (d) { return bnDigits[d]; }); }
+
+  function fields(row) { return Array.prototype.slice.call(row.querySelectorAll('input[type=text], input[type=number], textarea')); }
+  function snapshot(row) {
+    var parts = [];
+    row.querySelectorAll('input[type=number], input[type=text], textarea').forEach(function (el) { parts.push(el.value.trim()); });
+    var rad = row.querySelector('input[type=radio]:checked');
+    parts.push(rad ? rad.value : '');
+    return parts.join('\u0001');
+  }
+  function hasContent(row) {
+    // পারা নম্বর আগে থেকে ভরা থাকে, তাই শুধু সেটা থাকলে "তথ্য আছে" ধরা হয় না (সার্ভারেও একই নিয়ম)।
+    var any = false;
+    row.querySelectorAll('input[type=text], textarea').forEach(function (el) { if (el.value.trim()) any = true; });
+    if (row.querySelector('input[type=radio]:checked')) any = true;
+    return any;
+  }
+  rows.forEach(function (row) { row._snap = snapshot(row); });
+
+  function refresh() {
+    var dirty = 0, filled = 0;
+    rows.forEach(function (row) {
+      var d = snapshot(row) !== row._snap;
+      row.classList.toggle('dirty', d);
+      if (d) dirty++;
+      if (hasContent(row)) filled++;
+    });
+    document.getElementById('hzDirty').textContent = bn(dirty);
+    document.getElementById('hzFilled').textContent = bn(filled);
+    form._dirty = dirty > 0;
+  }
+  form.addEventListener('input', refresh);
+  form.addEventListener('change', refresh);
+  refresh();
+
+  // রেটিং: নির্বাচিত অপশনে আবার ট্যাপ করলে বাতিল।
+  form.querySelectorAll('input[type=radio]').forEach(function (r) { if (r.checked) r.dataset.was = '1'; });
+  form.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t || t.type !== 'radio') return;
+    if (t.dataset.was === '1') {
+      t.checked = false; t.dataset.was = '0';
+    } else {
+      form.querySelectorAll('input[name="' + t.name + '"]').forEach(function (x) { x.dataset.was = '0'; });
+      t.dataset.was = '1';
+    }
+    refresh();
+  });
+
+  // Enter চাপলে ফর্ম সাবমিট না হয়ে পরের ঘরে যায় (দ্রুত এন্ট্রির জন্য)।
+  form.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' || e.target.tagName === 'TEXTAREA' || e.target.type === 'submit') return;
+    e.preventDefault();
+    var list = Array.prototype.slice.call(form.querySelectorAll('[data-nav]')).filter(function (el) { return el.offsetParent !== null; });
+    var i = list.indexOf(e.target);
+    if (i >= 0 && list[i + 1]) { list[i + 1].focus(); if (list[i + 1].select) list[i + 1].select(); }
+  });
+
+  // মন্তব্য ঘর খোলা/বন্ধ।
+  form.querySelectorAll('.hz-comment-toggle').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var box = document.getElementById(b.getAttribute('data-for'));
+      box.classList.toggle('open');
+      if (box.classList.contains('open')) box.querySelector('textarea').focus();
+    });
+  });
+
+  // নাম/রোল দিয়ে খোঁজা — লুকানো সারির তথ্যও সেভ হয়, শুধু দেখা যায় না।
+  var search = document.getElementById('hzSearch');
+  if (search) {
+    search.addEventListener('input', function () {
+      var q = search.value.trim().toLowerCase();
+      rows.forEach(function (row) { row.classList.toggle('hidden', q !== '' && row.getAttribute('data-search').indexOf(q) === -1); });
+    });
+  }
+
+  // সেভ না করে চলে গেলে সতর্ক করা; সেভের সময় ডাবল-সাবমিট ঠেকানো।
+  var submitting = false;
+  window.addEventListener('beforeunload', function (e) { if (form._dirty && !submitting) { e.preventDefault(); e.returnValue = ''; } });
+  form.addEventListener('submit', function () {
+    submitting = true;
+    var b = document.getElementById('hzSave');
+    b.disabled = true; b.textContent = 'সেভ হচ্ছে…';
+  });
+
+  // তারিখ/বিভাগ বদলানোর আগে অসেভড তথ্য থাকলে জিজ্ঞেস করা।
+  var filter = document.getElementById('hzFilter');
+  if (filter) {
+    filter.addEventListener('submit', function (e) {
+      if (form._dirty && !confirm('আপনার পরিবর্তনগুলো সেভ হয়নি। তবুও চলে যাবেন?')) e.preventDefault();
+      else submitting = true;
+    });
+  }
+})();
+</script>
+</body>
+</html>

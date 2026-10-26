@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>দান-অনুদান</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+<%- include('_style') %>
+<%- include('_pwa') %>
+<style>
+  .dn-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, 1fr); margin-top: 12px; }
+  @media (min-width: 760px) { .dn-grid { grid-template-columns: repeat(4, 1fr); } }
+  .dn-stat { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; text-align: center; }
+  .dn-stat.zakat { background: #fffbeb; border-color: #fde68a; }
+  .dn-stat .num { font-size: 20px; font-weight: 700; color: #047857; line-height: 1.2; }
+  .dn-stat.zakat .num { color: #b45309; }
+  .dn-stat .lbl { font-size: 12px; color: #475569; margin-top: 2px; }
+  .dn-green { background: #047857; color: #fff; }
+  .dn-filter { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+  .dn-filter label { margin: 0 0 3px; }
+  .dn-form-grid { display: grid; gap: 10px; grid-template-columns: 1fr; }
+  @media (min-width: 700px) { .dn-form-grid { grid-template-columns: 1fr 1fr; } }
+  .dn-form-grid label { margin: 0 0 4px; }
+  .dn-form-grid input, .dn-form-grid select { width: 100%; }
+  .dn-ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; border-radius: 10px; padding: 10px 12px; font-weight: 600; margin-bottom: 12px; }
+  .dn-err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+  .dn-scroll { overflow-x: auto; }
+  .dn-cat { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; background: #d1fae5; color: #065f46; }
+  .dn-cat.zakat { background: #fef3c7; color: #92400e; }
+  .dn-note { font-size: 13px; color: #475569; line-height: 1.6; }
+</style>
+</head>
+<body>
+  <div class="app-shell">
+    <%- include('_sidebar') %>
+    <div class="main-content">
+
+  <%- include('_page-head', {
+    icon: '🤲',
+    title: 'দান-অনুদান',
+    desc: 'দান, সদকা ও যাকাত গ্রহণ — রশিদসহ আলাদা খাতা ও তহবিলভিত্তিক হিসাব।'
+  }) %>
+
+  <div class="card">
+    <h2>নতুন দান / সদকা / যাকাত যোগ করুন</h2>
+    <% if (saved) { %>
+      <div class="dn-ok">✓ সংরক্ষিত হয়েছে।
+        <% if (lastId) { %> <a href="/admin/donations/<%= lastId %>/receipt/pdf" target="_blank">🧾 রশিদ (PDF) খুলুন</a><% } %>
+      </div>
+    <% } %>
+    <% if (error) { %><div class="dn-err"><%= error %></div><% } %>
+
+    <form method="POST" action="/admin/donations/add">
+      <div class="dn-form-grid">
+        <div>
+          <label>খাত *</label>
+          <select name="category" required>
+            <% CATEGORIES.forEach(function (c) { %><option value="<%= c %>"><%= c %></option><% }) %>
+          </select>
+        </div>
+        <div>
+          <label>তহবিল</label>
+          <select name="fund">
+            <% FUNDS.forEach(function (f) { %><option value="<%= f %>"><%= f %></option><% }) %>
+          </select>
+        </div>
+        <div>
+          <label>টাকার পরিমাণ (৳) *</label>
+          <input type="number" name="amount" min="1" step="any" inputmode="decimal" required placeholder="৳" />
+        </div>
+        <div>
+          <label>তারিখ</label>
+          <input type="date" name="date" value="<%= today %>" max="<%= today %>" />
+        </div>
+        <div>
+          <label>দাতার নাম</label>
+          <input type="text" name="donorName" maxlength="120" placeholder="খালি রাখলে: নাম প্রকাশে অনিচ্ছুক" />
+        </div>
+        <div>
+          <label>মোবাইল (ঐচ্ছিক)</label>
+          <input type="text" name="phone" maxlength="30" inputmode="tel" />
+        </div>
+        <div>
+          <label>মাধ্যম</label>
+          <select name="method">
+            <% METHODS.forEach(function (m) { %><option value="<%= m %>"><%= m %></option><% }) %>
+          </select>
+        </div>
+        <div>
+          <label>নোট (ঐচ্ছিক)</label>
+          <input type="text" name="note" maxlength="300" />
+        </div>
+      </div>
+      <button type="submit" class="btn dn-green btn-block">💾 সংরক্ষণ করুন ও রশিদ তৈরি করুন</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <form method="GET" action="/admin/donations" class="dn-filter">
+      <div><label>মাস</label><input type="month" name="month" value="<%= all ? '' : month %>" /></div>
+      <button type="submit" class="btn dn-green" style="padding:10px 16px;">দেখুন</button>
+      <a href="/admin/donations?month=all" class="btn btn-secondary" style="padding:10px 16px;">সব সময়</a>
+    </form>
+    <p class="dn-note" style="margin-top:10px;"><%= all ? 'সব সময়ের' : (month + ' মাসের') %> হিসাব — মোট <%= summary.count %> টি এন্ট্রি।</p>
+
+    <div class="dn-grid">
+      <div class="dn-stat"><div class="num">৳ <%= summary.total.toLocaleString('en-US') %></div><div class="lbl">মোট প্রাপ্তি</div></div>
+      <% CATEGORIES.forEach(function (c) { if (!summary.byCategory[c]) return; %>
+        <div class="dn-stat <%= c === 'যাকাত' ? 'zakat' : '' %>"><div class="num">৳ <%= summary.byCategory[c].toLocaleString('en-US') %></div><div class="lbl"><%= c %></div></div>
+      <% }) %>
+    </div>
+
+    <h2 style="margin-top:18px;">তহবিলভিত্তিক</h2>
+    <div class="dn-grid">
+      <% FUNDS.forEach(function (f) { %>
+        <div class="dn-stat"><div class="num">৳ <%= (summary.byFund[f] || 0).toLocaleString('en-US') %></div><div class="lbl"><%= f %></div></div>
+      <% }) %>
+    </div>
+    <p class="dn-note" style="margin-top:12px;">যাকাত ও সদকা নির্দিষ্ট খাতে ব্যয়যোগ্য অর্থ, তাই এই হিসাব ফি-আয়ের সাথে (ড্যাশবোর্ড চার্টে) মেশানো হয় না।</p>
+  </div>
+
+  <div class="card">
+    <h2>এন্ট্রির তালিকা</h2>
+    <% if (list.length === 0) { %>
+      <p class="sub">এই সময়ে কোনো এন্ট্রি নেই।</p>
+    <% } else { %>
+    <div class="dn-scroll">
+      <table>
+        <thead><tr><th>রশিদ</th><th>তারিখ</th><th>দাতা</th><th>খাত</th><th>তহবিল</th><th>টাকা</th><th></th></tr></thead>
+        <tbody>
+          <% list.forEach(function (d) { %>
+          <tr>
+            <td><%= d.receiptNo %></td>
+            <td><%= d.date %></td>
+            <td><strong><%= d.donorName %></strong><% if (d.phone) { %><br><small style="color:#64748b;"><%= d.phone %></small><% } %></td>
+            <td><span class="dn-cat <%= d.category === 'যাকাত' ? 'zakat' : '' %>"><%= d.category %></span></td>
+            <td><%= d.fund %></td>
+            <td><strong>৳ <%= d.amount.toLocaleString('en-US') %></strong></td>
+            <td style="white-space:nowrap;">
+              <a href="/admin/donations/<%= d.id %>/receipt/pdf" target="_blank">🧾 রশিদ</a>
+              <form method="POST" action="/admin/donations/<%= d.id %>/delete" style="display:inline;" onsubmit="return confirm('এই এন্ট্রি মুছে ফেলবেন? রশিদ নম্বর আর ফিরবে না।');">
+                <input type="hidden" name="month" value="<%= all ? 'all' : month %>" />
+                <button type="submit" class="btn btn-danger" style="padding:4px 10px; font-size:12px; margin-left:6px;">মুছুন</button>
+              </form>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </div>
+
+    </div>
+  </div>
+</body>
+</html>

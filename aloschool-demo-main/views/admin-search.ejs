@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>খুঁজুন</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+<%- include('_style') %>
+<%- include('_pwa') %>
+</head>
+<body>
+  <div class="app-shell">
+    <%- include('_sidebar') %>
+    <div class="main-content">
+
+  <%- include('_page-head', {
+    icon: '🔎',
+    title: 'তালিবুল ইলম খুঁজুন',
+    desc: 'নাম বা রোল নম্বর দিয়ে যেকোনো তালিবুল ইলমর প্রোফাইলে দ্রুত যান।'
+  }) %>
+
+  <div class="card">
+    <form method="GET" action="/admin/search" class="row" style="align-items:flex-end;">
+      <div style="flex:1;">
+        <label>নাম বা রোল নম্বর</label>
+        <input type="text" name="q" value="<%= q %>" placeholder="যেমন: রাফিদা আক্তার বা ১২" autofocus />
+      </div>
+      <button type="submit" class="btn">খুঁজুন</button>
+    </form>
+  </div>
+
+  <% if (q) { %>
+    <div class="card">
+      <h2><%= results.length %>টি মারহালা / মূল্যায়ন পাওয়া গেছে</h2>
+      <% if (results.length === 0) { %>
+        <p class="empty">"<%= q %>" এর সাথে মিলে এমন কোনো তালিবুল ইলম পাওয়া যায়নি।</p>
+      <% } else { %>
+        <table>
+          <thead>
+            <tr><th>রোল</th><th>নাম</th><th>বিভাগ</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% results.forEach(function (s) { %>
+              <tr>
+                <td><%= s.roll || s.registration || '-' %></td>
+                <td><%= s.name %></td>
+                <td><%= s.className %></td>
+                <td><a href="/students/<%= s.classSlug %>/<%= s.id %>" class="btn btn-secondary">প্রোফাইল</a></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+  <% } %>
+
+    </div>
+  </div>
+</body>
+</html>

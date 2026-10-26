@@ -1,0 +1,24 @@
+{
+  "name": "madrasa-management-system",
+  "version": "1.0.0",
+  "description": "হিফজিয়া ও নূরানী মাদ্রাসা ম্যানেজমেন্ট সিস্টেম — তালিবুল ইলম, দৈনিক হিফজ সবক, বোর্ডিং ও মেস ফি, দান-অনুদান, মারহালা/মূল্যায়ন",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "postinstall": "node scripts/ensure-fonts.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "archiver": "^7.0.1",
+    "body-parser": "^1.20.2",
+    "ejs": "^3.1.9",
+    "express": "^4.19.2",
+    "helmet": "^7.2.0",
+    "multer": "^1.4.5-lts.1",
+    "pdfkit": "^0.15.0",
+    "pg": "^8.11.3",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.33.4",
+    "xlsx": "^0.18.5"
+  }
+}
